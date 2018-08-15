@@ -1,33 +1,21 @@
 # -*- coding: utf-8 -*-
-import json
 
 from chaoslib.exceptions import FailedActivity
-import requests
+from elasticsearch import Elasticsearch
 
 
-def create_index(base_url: str, index_name: str, num_of_shards: int = 3, num_of_replicas: int = 2) -> str:
+def create_index(base_url: str, port: int, index_name: str) -> str:
     """
 
     :param base_url:
     :param index_name:
-    :param num_of_shards:
-    :param num_of_replicas:
+    :param port:
     :return:
     """
 
-    url = "{base_url}/{index_name}".format(base_url=base_url, index_name=index_name)
+    es = Elasticsearch(hosts=[{'host': base_url, 'port': port}])
 
-    params = {}
-
-    payload = {
-        "num_of_replicas": num_of_replicas,
-        "num_of_shards": num_of_shards
-    }
-
-    r = requests.post(
-            url, headers={"Accept": "application/json",
-                          "Content-Type": "application/json"},
-            data=json.dumps(payload), params=params)
+    r = es.indices.create(index=index_name, ignore=400)
 
     if r.status_code != 200:
         raise FailedActivity(
@@ -35,3 +23,25 @@ def create_index(base_url: str, index_name: str, num_of_shards: int = 3, num_of_
                 m=r.text))
 
     return r.text
+
+
+def delete_index(base_url: str, port: int, index_name: str) -> str:
+    """
+
+    :param base_url:
+    :param index_name:
+    :param port:
+    :return:
+    """
+
+    es = Elasticsearch(hosts=[{'host': base_url, 'port': port}])
+
+    r = es.indices.delete(index=index_name, ignore=400)
+
+    if r.status_code != 200:
+        raise FailedActivity(
+            "Delete index failed: {m}".format(
+                m=r.text))
+
+    return r.text
+
